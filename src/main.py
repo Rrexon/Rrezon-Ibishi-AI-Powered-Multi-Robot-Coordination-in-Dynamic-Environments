@@ -23,6 +23,14 @@ robot_col = 3
 target_row = 12
 target_col = 15
 
+obstacles = {
+    (5, 8),
+    (5, 9),
+    (5, 10),
+    (5, 11),
+    (5, 12)
+}
+
 running = True
 clock = pygame.time.Clock()
 while running:
@@ -30,15 +38,22 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+    next_row = robot_row
+    next_col = robot_col
 
     if robot_col < target_col:
-        robot_col += 1
+        next_col += 1
     elif robot_col > target_col:
-        robot_col -= 1
+        next_col -= 1
     elif robot_row < target_row:
-        robot_row += 1
+        next_row += 1
     elif robot_row > target_row:
-        robot_row -= 1
+        next_row -= 1
+
+# Move only if the next cell is not blocked
+    if (next_row, next_col) not in obstacles:
+        robot_row = next_row
+        robot_col = next_col
 
     # Set the background color
     screen.fill((240, 240, 240))
@@ -55,6 +70,12 @@ while running:
                 (x, y, CELL_SIZE, CELL_SIZE),
                 1
             )
+
+    for row , col in obstacles:
+        y = row * CELL_SIZE
+        x = col * CELL_SIZE
+
+        pygame.draw.rect(screen, (50 ,50, 50), (x,y,CELL_SIZE,CELL_SIZE))
 
     # Convert the robot's grid position to screen coordinates
     robot_x = robot_col * CELL_SIZE

@@ -20,13 +20,25 @@ pygame.display.set_caption("Multi-Robot Coordination")
 robot_row = 5
 robot_col = 3
 
-running = True
+target_row = 12
+target_col = 15
 
+running = True
+clock = pygame.time.Clock()
 while running:
     # Check for window and user events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+    if robot_col < target_col:
+        robot_col += 1
+    elif robot_col > target_col:
+        robot_col -= 1
+    elif robot_row < target_row:
+        robot_row += 1
+    elif robot_row > target_row:
+        robot_row -= 1
 
     # Set the background color
     screen.fill((240, 240, 240))
@@ -57,6 +69,7 @@ while running:
 
     # Update the display
     pygame.display.flip()
+    clock.tick(5)
 
 # Shut down Pygame
 pygame.quit()

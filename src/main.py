@@ -1,5 +1,7 @@
 import pygame
 
+from astar import astar
+
 # Initialize Pygame
 pygame.init()
 
@@ -31,6 +33,16 @@ obstacles = {
     (5, 12)
 }
 
+# Calculate a path from the robot's start to the target
+start = (robot_row, robot_col)
+goal = (target_row, target_col)
+
+path = astar(start, goal, obstacles, GRID_SIZE)
+
+path_index = 0
+
+print("Path from A*:", path)
+
 running = True
 clock = pygame.time.Clock()
 while running:
@@ -38,22 +50,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    next_row = robot_row
-    next_col = robot_col
 
-    if robot_col < target_col:
-        next_col += 1
-    elif robot_col > target_col:
-        next_col -= 1
-    elif robot_row < target_row:
-        next_row += 1
-    elif robot_row > target_row:
-        next_row -= 1
-
-# Move only if the next cell is not blocked
-    if (next_row, next_col) not in obstacles:
-        robot_row = next_row
-        robot_col = next_col
+        # Follow the path returned by A*
+    if path is not None and path_index < len(path) - 1:
+        path_index += 1
+        robot_row, robot_col = path[path_index]
 
     # Set the background color
     screen.fill((240, 240, 240))

@@ -73,6 +73,7 @@ def astar(start, goal, obstacles, grid_size):
         open_set.remove(current)
 
         # Check whether the target has been reached
+        # this statement returns the path
         if current == goal:
             return reconstruct_path(came_from, current)
 

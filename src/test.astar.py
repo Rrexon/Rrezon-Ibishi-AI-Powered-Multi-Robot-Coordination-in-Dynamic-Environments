@@ -34,3 +34,31 @@ for current, following in zip(path, path[1:]):
 print("All path checks passed!")
 
 print("Found path:", path)
+
+
+# Test a wall with an opening in the middle
+middle_obstacles = {
+    (8, col) for col in range(20)
+    if col != 10
+}
+
+middle_path = astar(start, goal, middle_obstacles, 20)
+
+assert middle_path is not None, "A* should find a path"
+assert middle_path[0] == start, "Path should begin at the start"
+assert middle_path[-1] == goal, "Path should end at the goal"
+assert (8, 10) in middle_path, "Path should pass through the gap"
+assert len(middle_path) == 20, "Path should contain 20 positions"
+
+assert all(cell not in middle_obstacles for cell in middle_path), \
+    "Path should not cross obstacles"
+
+for current, following in zip(middle_path, middle_path[1:]):
+    distance = (
+        abs(current[0] - following[0])
+        + abs(current[1] - following[1])
+    )
+    assert distance == 1, "Each move must go to an adjacent cell"
+
+print("Middle-gap test passed!")
+print("Found path:", middle_path)

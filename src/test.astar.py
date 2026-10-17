@@ -62,3 +62,14 @@ for current, following in zip(middle_path, middle_path[1:]):
 
 print("Middle-gap test passed!")
 print("Found path:", middle_path)
+
+# Test a wall with no opening
+blocked_obstacles = {
+    (8, col) for col in range(20)
+}
+
+blocked_path = astar(start, goal, blocked_obstacles, 20)
+
+assert blocked_path is None, "A* should not find a path"
+
+print("Unreachable-goal test passed!")

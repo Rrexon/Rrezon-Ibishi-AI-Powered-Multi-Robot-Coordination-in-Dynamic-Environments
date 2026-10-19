@@ -4,7 +4,7 @@ def heuristic(position, goal):
     row, col = position
     goal_row, goal_col = goal
 
-    return abs(row- goal_row) + (col - goal_col)
+    return abs(row- goal_row) + abs(col - goal_col)
 
 # Find neighbor available cells it can move to
 def get_neighbors(position, obstacles, grid_size):

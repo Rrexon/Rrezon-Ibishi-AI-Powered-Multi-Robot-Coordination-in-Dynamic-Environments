@@ -28,4 +28,7 @@ class Environment:
         row, col = pos
         inside = 0 <= row < self.grid_size and 0 <= col < self.grid_size
         return inside and pos not in self.obstacles
-    
+
+    def step(self, actions):
+        for i, action in enumerate(actions):
+            self.move_robot(i, action)

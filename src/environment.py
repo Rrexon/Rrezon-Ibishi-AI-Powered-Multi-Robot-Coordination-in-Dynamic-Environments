@@ -16,6 +16,7 @@ class Environment:
     def reset(self):
         self.robots = list(self.robot_starts)
         self.tasks = list(self.task_locations)
+        self.completed = 0
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -32,3 +33,8 @@ class Environment:
     def step(self, actions):
         for i, action in enumerate(actions):
             self.move_robot(i, action)
+
+        for pos in self.robots:
+            if pos in self.tasks:
+                self.tasks.remove(pos)
+                self.completed += 1

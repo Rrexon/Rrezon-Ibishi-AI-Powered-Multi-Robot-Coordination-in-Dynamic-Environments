@@ -38,6 +38,12 @@ class Environment:
         if self.is_free(new_pos):
             return new_pos
         return (row, col)
+
+    def desired_positions(self, actions):
+        desired = []
+        for i, action in enumerate(actions):
+            desired.append(self.desired_position(i, action))
+        return desired
     
     def step(self, actions):
         for i, action in enumerate(actions):

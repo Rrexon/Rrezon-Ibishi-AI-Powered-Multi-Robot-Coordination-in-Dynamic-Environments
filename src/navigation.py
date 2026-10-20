@@ -1,3 +1,4 @@
+from astar import astar
 
 def action_toward(current, next_cell):
     row, col = current
@@ -14,4 +15,14 @@ def action_toward(current, next_cell):
 
     if next_col == col + 1:
         return 3
+
+def plan_actions(env, targets):
+    actions = []
+    for i in range(len(env.robots)):
+        path = astar(env.robots[i], targets[i], env.obstacles, env.grid_size)
+        if path is not None and len(path) > 1:
+            actions.append(action_toward(env.robots[i], path[1]))
+        else:
+            actions.append(4)
+    return actions
 

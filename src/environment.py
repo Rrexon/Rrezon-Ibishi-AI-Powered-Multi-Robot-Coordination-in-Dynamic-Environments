@@ -11,6 +11,7 @@ class Environment:
         self.obstacles = obstacles
         self.robot_starts = robot_starts
         self.task_locations = task_locations
+        self.collisions_avoided = 0
         self.reset()
 
     def reset(self):
@@ -52,17 +53,19 @@ class Environment:
                 if desired[a] == desired[b]:
                     conflicts.append((a, b))
         return conflicts
+
+    def resolve_conflicts(self, desired):
+        for a, b in self.find_conflicts(desired):
+            desired[b] = self.robots[b]
+            self.collisions_avoided += 1
+        return desired
     
     def step(self, actions):
-        for i, action in enumerate(actions):
-            self.move_robot(i, action)
+        desired = self.desired_positions(actions)
+        desired = self.resolve_conflicts(desired)
+        self.robots = desired
 
         for pos in self.robots:
             if pos in self.tasks:
                 self.tasks.remove(pos)
                 self.completed += 1
-
-        for a in range(len(self.robots)):
-            for b in range(a + 1, len(self.robots)):
-                if self.robots[a] == self.robots[b]:
-                    self.collisions += 1

@@ -4,7 +4,7 @@ def action_toward(current, next_cell):
     next_row, next_col = next_cell
 
     if next_row == row - 1:
-        return 0  # up
+        return 0 
 
     if next_row == row + 1:
         return 1

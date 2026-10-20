@@ -44,6 +44,14 @@ class Environment:
         for i, action in enumerate(actions):
             desired.append(self.desired_position(i, action))
         return desired
+
+    def find_conflicts(self, desired):
+        conflicts = []
+        for a in range(len(desired)):
+            for b in range(a + 1, len(desired)):
+                if desired[a] == desired[b]:
+                    conflicts.append((a, b))
+        return conflicts
     
     def step(self, actions):
         for i, action in enumerate(actions):

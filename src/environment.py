@@ -17,6 +17,7 @@ class Environment:
         self.robots = list(self.robot_starts)
         self.tasks = list(self.task_locations)
         self.completed = 0
+        self.collision = 0
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -30,6 +31,14 @@ class Environment:
         inside = 0 <= row < self.grid_size and 0 <= col < self.grid_size
         return inside and pos not in self.obstacles
 
+    def desired_position(self, i, action):
+        d_row, d_col = ACTIONS[action]
+        row, col = self.robots[i]
+        new_pos = (row + d_row, col + d_col)
+        if self.is_free(new_pos):
+            return new_pos
+        return (row, col)
+    
     def step(self, actions):
         for i, action in enumerate(actions):
             self.move_robot(i, action)
@@ -38,3 +47,8 @@ class Environment:
             if pos in self.tasks:
                 self.tasks.remove(pos)
                 self.completed += 1
+
+        for a in range(len(self.robots)):
+            for b in range(a + 1, len(self.robots)):
+                if self.robots[a] == self.robots[b]:
+                    self.collisions += 1

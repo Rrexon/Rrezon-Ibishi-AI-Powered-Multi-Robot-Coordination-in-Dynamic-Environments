@@ -8,4 +8,15 @@ def bid(env, robot_index, task):
         return float("inf")
 
     return len(path) - 1
-     
+
+def run_auction(env, task):
+    best_robot = None
+    best_bid = float("inf")
+
+    for i in range(len(env.robots)):
+        b = bid(env, i, task)
+        if b < best_bid:
+            best_bid = b
+            best_robot = i
+
+    return best_robot

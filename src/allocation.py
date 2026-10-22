@@ -14,9 +14,17 @@ def run_auction(env, task):
     best_bid = float("inf")
 
     for i in range(len(env.robots)):
+        if env.assignments[i] is not None:
+            continue
         b = bid(env, i, task)
         if b < best_bid:
             best_bid = b
             best_robot = i
 
     return best_robot
+
+def assign_task(env, task):
+    winner = run_auction(env, task)
+    if winner is not None:
+        env.assignments[winner] = task
+    return winner

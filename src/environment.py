@@ -20,6 +20,7 @@ class Environment:
         self.tasks = list(self.task_locations)
         self.completed = 0
         self.collision = 0
+        self.assignments = [None] * len(self.robots)
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -66,7 +67,8 @@ class Environment:
         desired = self.resolve_conflicts(desired)
         self.robots = desired
 
-        for pos in self.robots:
+        for i, pos in enumerate(self.robots):
             if pos in self.tasks:
                 self.tasks.remove(pos)
                 self.completed += 1
+                self.assignments[i] = None

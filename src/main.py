@@ -1,17 +1,14 @@
 import pygame
 
 from environment import Environment
-from astar import astar
-from navigation import action_toward
+from navigation import plan_actions
 
 CELL_SIZE = 30
 GRID_SIZE = 20
 
-obstacles = {(5, 8), (5, 9), (5, 10), (5, 11), (5, 12)}
-env = Environment(GRID_SIZE, obstacles, [(5, 3)], [(12, 15)])
-
-path = astar(env.robots[0], env.tasks[0], env.obstacles, env.grid_size)
-path_index = 0
+obstacles = {(3, 12), (3, 13), (3, 14)}
+targets = [(10, 15), (4, 9)]
+env = Environment(GRID_SIZE, obstacles, [(10, 3), (16, 9)], list(targets))
 
 pygame.init()
 screen = pygame.display.set_mode((CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE))
@@ -24,11 +21,8 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    #  the robot takes the next step along its A* path
-    if path_index < len(path) - 1:
-        path_index += 1
-        action = action_toward(env.robots[0], path[path_index])
-        env.step([action])
+    #  every robot plans from where it is now, then all move
+    env.step(plan_actions(env, targets))
 
     screen.fill((240, 240, 240))
 
@@ -50,6 +44,6 @@ while running:
                          (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
     pygame.display.flip()
-    clock.tick(5)
+    clock.tick(3)
 
 pygame.quit()

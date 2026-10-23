@@ -21,7 +21,8 @@ class Environment:
         self.robots = list(self.robot_starts)
         self.tasks = list(self.task_locations)
         self.completed = 0
-        self.collision = 0
+        self.collisions = 0
+        self.collisions_avoided = 0
         self.assignments = [None] * len(self.robots)
         self.moving_obstacles = list(self.initial_moving)
         self.obstacles = set(self.walls)
@@ -73,9 +74,20 @@ class Environment:
         return conflicts
 
     def resolve_conflicts(self, desired):
-        for a, b in self.find_conflicts(desired):
-            desired[b] = self.robots[b]
+        conflicts = self.find_conflicts(desired)
+
+        while conflicts:
+            a, b = conflicts[0]
+
+            if desired[b] == self.robots[b]:
+                loser = a
+            else:
+                loser = b
+
+            desired[loser] = self.robots[loser]
             self.collisions_avoided += 1
+            conflicts = self.find_conflicts(desired)
+
         return desired
     
     def step(self, actions):

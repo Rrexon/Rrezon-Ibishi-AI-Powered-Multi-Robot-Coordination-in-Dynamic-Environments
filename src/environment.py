@@ -1,3 +1,5 @@
+from obsctacles import move_obstacle
+
 ACTIONS = {
     0: (-1, 0),  # up
     1: (1, 0),   # down
@@ -7,12 +9,12 @@ ACTIONS = {
 }
 
 class Environment:
-    def __init__(self, grid_size, obstacles, robot_starts, task_locations):
+    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None):
         self.grid_size = grid_size
-        self.obstacles = obstacles
+        self.walls = set(obstacles)
         self.robot_starts = robot_starts
         self.task_locations = task_locations
-        self.collisions_avoided = 0
+        self.initial_moving = moving_obstacles or []
         self.reset()
 
     def reset(self):
@@ -21,6 +23,10 @@ class Environment:
         self.completed = 0
         self.collision = 0
         self.assignments = [None] * len(self.robots)
+        self.moving_obstacles = list(self.initial_moving)
+        self.obstacles = set(self.walls)
+        for position, direction in self.moving_obstacles:
+            self.obstacles.add(position)
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -33,6 +39,16 @@ class Environment:
         row, col = pos
         inside = 0 <= row < self.grid_size and 0 <= col < self.grid_size
         return inside and pos not in self.obstacles
+
+    def update_obstacles(self):
+        new_list = []
+        for obstacle in self.moving_obstacles:
+            new_list.append(move_obstacle(obstacle, self.grid_size))
+        self.moving_obstacles = new_list
+
+        self.obstacles = set(self.walls)
+        for position, direction in self.moving_obstacles:
+            self.obstacles.add(position)
 
     def desired_position(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -63,6 +79,7 @@ class Environment:
         return desired
     
     def step(self, actions):
+        self.update_obstacles()
         desired = self.desired_positions(actions)
         desired = self.resolve_conflicts(desired)
         self.robots = desired

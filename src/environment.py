@@ -58,6 +58,13 @@ class Environment:
             if pos in self.obstacles:
                 self.obstacle_hits += 1
 
+    def waiting_tasks(self):
+        waiting = []
+        for task in self.tasks:
+            if task not in self.assignments:
+                waiting.append(task)
+        return waiting
+
     def desired_position(self, i, action):
         d_row, d_col = ACTIONS[action]
         row, col = self.robots[i]

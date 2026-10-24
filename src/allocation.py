@@ -28,3 +28,7 @@ def assign_task(env, task):
     if winner is not None:
         env.assignments[winner] = task
     return winner
+
+def assign_waiting_tasks(env):
+    for task in env.waiting_tasks():
+        assign_task(env, task)

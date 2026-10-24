@@ -71,6 +71,8 @@ class Environment:
             for b in range(a + 1, len(desired)):
                 if desired[a] == desired[b]:
                     conflicts.append((a, b))
+                elif desired[a] == self.robots[b] and desired[b] == self.robots[a]:
+                    conflicts.append((a, b))
         return conflicts
 
     def resolve_conflicts(self, desired):

@@ -123,4 +123,6 @@ class Environment:
             if pos in self.tasks:
                 self.tasks.remove(pos)
                 self.completed += 1
-                self.assignments[i] = None
+                for j in range(len(self.assignments)):
+                    if self.assignments[j] == pos:
+                        self.assignments[j] = None

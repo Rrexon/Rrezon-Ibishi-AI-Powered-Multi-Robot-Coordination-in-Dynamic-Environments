@@ -1,18 +1,23 @@
 import pygame
 
 from environment import Environment
+from allocation import assign_waiting_tasks
 from navigation import plan_actions
 
 CELL_SIZE = 30
 GRID_SIZE = 20
 
-obstacles = {(3, 12), (3, 13), (3, 14)}
-targets = [(10, 15), (4, 9)]
-env = Environment(GRID_SIZE, obstacles, [(10, 3), (16, 9)], list(targets))
+walls = {(5, 8), (5, 9), (5, 10)}
+robot_starts = [(0, 0), (19, 0), (19, 19)]
+tasks = [(12, 5), (3, 14)]
+moving = [((10, 0), (0, 1)), ((2, 17), (1, 0))]
+new_tasks = {10: (15, 15), 20: (4, 4)}
+priorities = {(15, 15): 3, (4, 4): 2}
+
+env = Environment(GRID_SIZE, walls, robot_starts, tasks, moving, new_tasks, priorities)
 
 pygame.init()
 screen = pygame.display.set_mode((CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE))
-pygame.display.set_caption("Multi-Robot Coordination")
 clock = pygame.time.Clock()
 
 running = True
@@ -21,8 +26,14 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    #  every robot plans from where it is now, then all move
-    env.step(plan_actions(env, targets))
+    # One turn: free robots win tasks, then everyone plans and moves
+    assign_waiting_tasks(env)
+    env.step(plan_actions(env, env.assignments))
+
+    pygame.display.set_caption(
+        f"Turn {env.turn}  Done {env.completed}  "
+        f"Avoided {env.collisions_avoided}  Hits {env.obstacle_hits}"
+    )
 
     screen.fill((240, 240, 240))
 

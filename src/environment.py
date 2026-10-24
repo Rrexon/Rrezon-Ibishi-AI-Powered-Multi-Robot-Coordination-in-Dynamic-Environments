@@ -9,12 +9,13 @@ ACTIONS = {
 }
 
 class Environment:
-    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None):
+    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None):
         self.grid_size = grid_size
         self.walls = set(obstacles)
         self.robot_starts = robot_starts
         self.task_locations = task_locations
         self.initial_moving = moving_obstacles or []
+        self.task_schedule = new_tasks or {}
         self.reset()
 
     def reset(self):
@@ -23,6 +24,8 @@ class Environment:
         self.completed = 0
         self.collisions = 0
         self.collisions_avoided = 0
+        self.obstacle_hits = 0
+        self.turn = 0
         self.assignments = [None] * len(self.robots)
         self.moving_obstacles = list(self.initial_moving)
         self.obstacles = set(self.walls)
@@ -50,6 +53,10 @@ class Environment:
         self.obstacles = set(self.walls)
         for position, direction in self.moving_obstacles:
             self.obstacles.add(position)
+
+        for pos in self.robots:
+            if pos in self.obstacles:
+                self.obstacle_hits += 1
 
     def desired_position(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -94,6 +101,9 @@ class Environment:
     
     def step(self, actions):
         self.update_obstacles()
+        self.turn += 1
+        if self.turn in self.task_schedule:
+            self.tasks.append(self.task_schedule[self.turn])
         desired = self.desired_positions(actions)
         desired = self.resolve_conflicts(desired)
         self.robots = desired

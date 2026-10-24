@@ -9,13 +9,14 @@ ACTIONS = {
 }
 
 class Environment:
-    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None):
+    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None, priorities = None):
         self.grid_size = grid_size
         self.walls = set(obstacles)
         self.robot_starts = robot_starts
         self.task_locations = task_locations
         self.initial_moving = moving_obstacles or []
         self.task_schedule = new_tasks or {}
+        self.priorities = priorities or {}
         self.reset()
 
     def reset(self):
@@ -64,6 +65,9 @@ class Environment:
             if task not in self.assignments:
                 waiting.append(task)
         return waiting
+
+    def priority_of(self, task):
+        return self.priorities.get(task, 1)
 
     def desired_position(self, i, action):
         d_row, d_col = ACTIONS[action]

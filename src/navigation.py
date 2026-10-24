@@ -19,6 +19,9 @@ def action_toward(current, next_cell):
 def plan_actions(env, targets):
     actions = []
     for i in range(len(env.robots)):
+        if targets[i] is None:
+            actions.append(4)
+            continue
         path = astar(env.robots[i], targets[i], env.obstacles, env.grid_size)
         if path is not None and len(path) > 1:
             actions.append(action_toward(env.robots[i], path[1]))

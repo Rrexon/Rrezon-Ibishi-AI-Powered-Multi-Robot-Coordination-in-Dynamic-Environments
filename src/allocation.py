@@ -30,5 +30,7 @@ def assign_task(env, task):
     return winner
 
 def assign_waiting_tasks(env):
-    for task in env.waiting_tasks():
+    waiting = env.waiting_tasks()
+    waiting = sorted(waiting, key=env.priority_of, reverse=True)
+    for task in waiting:
         assign_task(env, task)

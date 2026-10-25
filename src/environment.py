@@ -27,6 +27,7 @@ class Environment:
         self.collisions_avoided = 0
         self.obstacle_hits = 0
         self.turn = 0
+        self.previous_conflicts = set()
         self.assignments = [None] * len(self.robots)
         self.moving_obstacles = list(self.initial_moving)
         self.obstacles = set(self.walls)
@@ -66,6 +67,13 @@ class Environment:
                 waiting.append(task)
         return waiting
 
+    def blocked_for(self, i):
+        blocked = set(self.obstacles)
+        for j, pos in enumerate(self.robots):
+            if j != i:
+                blocked.add(pos)
+        return blocked
+
     def priority_of(self, task):
         return self.priorities.get(task, 1)
 
@@ -95,9 +103,11 @@ class Environment:
 
     def resolve_conflicts(self, desired):
         conflicts = self.find_conflicts(desired)
+        seen = set()
 
         while conflicts:
             a, b = conflicts[0]
+            seen.add((a, b))
 
             if desired[b] == self.robots[b]:
                 loser = a
@@ -105,9 +115,10 @@ class Environment:
                 loser = b
 
             desired[loser] = self.robots[loser]
-            self.collisions_avoided += 1
             conflicts = self.find_conflicts(desired)
 
+        self.collisions_avoided += len(seen - self.previous_conflicts)
+        self.previous_conflicts = seen
         return desired
     
     def step(self, actions):

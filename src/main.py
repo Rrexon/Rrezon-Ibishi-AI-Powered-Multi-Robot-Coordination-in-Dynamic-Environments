@@ -55,6 +55,6 @@ while running:
                          (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
     pygame.display.flip()
-    clock.tick(3)
+    clock.tick(2)
 
 pygame.quit()

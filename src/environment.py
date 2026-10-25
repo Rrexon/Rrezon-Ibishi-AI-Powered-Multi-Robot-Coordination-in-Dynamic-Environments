@@ -13,6 +13,8 @@ class Environment:
         self.grid_size = grid_size
         self.walls = set(obstacles)
         self.robot_starts = robot_starts
+        if len(set(robot_starts)) != len(robot_starts):
+            raise ValueError("Two robots start on the same cell")
         self.task_locations = task_locations
         self.initial_moving = moving_obstacles or []
         self.task_schedule = new_tasks or {}
@@ -122,6 +124,8 @@ class Environment:
         return desired
     
     def step(self, actions):
+        if len(actions) != len(self.robots):
+            raise ValueError("Need exactly one action per robot")
         self.update_obstacles()
         self.turn += 1
         if self.turn in self.task_schedule:

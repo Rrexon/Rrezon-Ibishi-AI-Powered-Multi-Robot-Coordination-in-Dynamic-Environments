@@ -1,3 +1,4 @@
+import heapq
 
 def heuristic(position, goal):
 
@@ -48,46 +49,36 @@ def reconstruct_path(came_from, current):
 
 
 def astar(start, goal, obstacles, grid_size):
-    # Cells waiting to be explored
-    open_set = {start}
+    # Cells waiting to be explored, kept so the lowest f_score is always first
+    open_heap = [(heuristic(start, goal), start)]
 
-    # Records where each cell came from
     came_from = {}
-
-    # Cost from the start to each cell
     g_score = {start: 0}
 
-    # Estimated total cost through each cell
-    f_score = {start: heuristic(start, goal)}
+    # Cells already explored
+    closed = set()
 
-        # Search until there are no cells left to explore
-    while open_set:
-        current = None
+    while open_heap:
+        # Take the cell with the lowest f_score
+        _, current = heapq.heappop(open_heap)
 
-        # Find the cell with the lowest f_score
-        for position in open_set:
-            if current is None or f_score[position] < f_score[current]:
-                current = position
+        # A cell can be pushed more than once; skip it if already explored
+        if current in closed:
+            continue
 
-        # Remove the selected cell from the cells waiting to be explored
-        open_set.remove(current)
-
-        # Check whether the target has been reached
-        # this statement returns the path
         if current == goal:
             return reconstruct_path(came_from, current)
 
-        # Check each valid neighboring cell
+        closed.add(current)
+
         for neighbor in get_neighbors(current, obstacles, grid_size):
-            # Calculate the cost of reaching this neighbor
             tentative_g_score = g_score[current] + 1
 
-               # Check whether this is a new or cheaper route
             if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                open_set.add(neighbor)
+                f_score = tentative_g_score + heuristic(neighbor, goal)
+                heapq.heappush(open_heap, (f_score, neighbor))
 
     return None
 

@@ -1,4 +1,4 @@
-from obsctacles import move_obstacle
+from obstacles import move_obstacle
 
 ACTIONS = {
     0: (-1, 0),  # up
@@ -19,6 +19,12 @@ class Environment:
         self.initial_moving = moving_obstacles or []
         self.task_schedule = new_tasks or {}
         self.priorities = priorities or {}
+        for task in list(task_locations) + list(self.task_schedule.values()):
+            row, col = task
+            if not (0 <= row < grid_size and 0 <= col < grid_size):
+                raise ValueError("A task is outside the grid")
+            if task in self.walls:
+                raise ValueError("A task is placed on a wall")
         self.reset()
 
     def reset(self):

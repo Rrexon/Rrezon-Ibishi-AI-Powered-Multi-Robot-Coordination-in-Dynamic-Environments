@@ -164,6 +164,44 @@ def test_urgent_task_is_auctioned_first():
     assert env.assignments == [(0, 8)], "Priority 5 beats priority 1"
     assert env.waiting_tasks() == [(0, 3)]
 
+    # ---------- preemption ----------
+
+def test_urgent_task_takes_a_robot_from_a_routine_task():
+    env = Environment(20, set(), [(0, 0)], [(0, 10), (5, 5)], None, None, {(5, 5): 5})
+    env.assignments[0] = (0, 10)
+    assign_waiting_tasks(env)
+    assert env.assignments == [(5, 5)], "The urgent task takes the robot"
+    assert env.waiting_tasks() == [(0, 10)], "The routine task is waiting again"
+
+
+def test_equal_priority_does_not_preempt():
+    env = Environment(20, set(), [(0, 0)], [(0, 10), (5, 5)])
+    env.assignments[0] = (0, 10)
+    assign_waiting_tasks(env)
+    assert env.assignments == [(0, 10)], "Same priority must not take the robot"
+
+
+def test_preemption_takes_the_cheapest_robot():
+    env = Environment(20, set(), [(0, 0), (0, 19)], [(0, 5), (0, 15), (3, 2)],
+                      None, None, {(3, 2): 5})
+    env.assignments = [(0, 5), (0, 15)]
+    assign_waiting_tasks(env)
+    assert env.assignments == [(3, 2), (0, 15)], "Robot 0 is much closer to (3, 2)"
+    assert env.waiting_tasks() == [(0, 5)]
+
+
+def test_urgent_task_arriving_mid_run_is_done_quickly():
+    env = Environment(20, set(), [(0, 0), (0, 19)], [(0, 15), (0, 5)],
+                      None, {2: (3, 2)}, {(3, 2): 5})
+    finished_on = None
+    for turn in range(60):
+        assign_waiting_tasks(env)
+        env.step(plan_actions(env, env.assignments))
+        if finished_on is None and env.turn >= 2 and (3, 2) not in env.tasks:
+            finished_on = env.turn
+    assert finished_on is not None and finished_on <= 6, "Urgent task done by turn 6"
+    assert env.completed == 3, "The routine tasks still get done"
+
 
 if __name__ == "__main__":
     count = 0

@@ -18,7 +18,23 @@ env = Environment(GRID_SIZE, walls, robot_starts, tasks, moving, new_tasks, prio
 
 pygame.init()
 screen = pygame.display.set_mode((CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE))
+font = pygame.font.SysFont(None, 22)
 clock = pygame.time.Clock()
+
+
+def draw_cell(cell, color):
+    row, col = cell
+    pygame.draw.rect(screen, color,
+                     (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+
+def draw_label(cell, text):
+    row, col = cell
+    image = font.render(str(text), True, (255, 255, 255))
+    x = col * CELL_SIZE + (CELL_SIZE - image.get_width()) // 2
+    y = row * CELL_SIZE + (CELL_SIZE - image.get_height()) // 2
+    screen.blit(image, (x, y))
+
 
 running = True
 while running:
@@ -42,19 +58,25 @@ while running:
             pygame.draw.rect(screen, (180, 180, 180),
                              (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
 
-    for row, col in env.obstacles:
-        pygame.draw.rect(screen, (50, 50, 50),
-                         (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    # Fixed walls: dark grey
+    for cell in env.walls:
+        draw_cell(cell, (50, 50, 50))
 
-    for row, col in env.tasks:
-        pygame.draw.rect(screen, (60, 180, 80),
-                         (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    # Moving obstacles: orange
+    for cell, direction in env.moving_obstacles:
+        draw_cell(cell, (230, 120, 30))
 
-    for row, col in env.robots:
-        pygame.draw.rect(screen, (50, 100, 200),
-                         (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    # Tasks: green, with the priority number on top
+    for cell in env.tasks:
+        draw_cell(cell, (60, 180, 80))
+        draw_label(cell, env.priority_of(cell))
+
+    # Robots: blue, with the robot number on top
+    for i, cell in enumerate(env.robots):
+        draw_cell(cell, (50, 100, 200))
+        draw_label(cell, i)
 
     pygame.display.flip()
-    clock.tick(2)
+    clock.tick(3)
 
 pygame.quit()

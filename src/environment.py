@@ -51,7 +51,7 @@ class Environment:
     def update_obstacles(self):
         new_list = []
         for obstacle in self.moving_obstacles:
-            new_list.append(move_obstacle(obstacle, self.grid_size))
+            new_list.append(move_obstacle(obstacle, self.grid_size, self.walls))
         self.moving_obstacles = new_list
 
         self.obstacles = set(self.walls)

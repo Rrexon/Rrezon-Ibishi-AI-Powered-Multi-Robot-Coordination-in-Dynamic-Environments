@@ -1,4 +1,5 @@
 from obstacles import move_obstacle
+import random 
 
 ACTIONS = {
     0: (-1, 0),  # up
@@ -9,7 +10,7 @@ ACTIONS = {
 }
 
 class Environment:
-    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None, priorities = None):
+    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None, priorities = None, seed= None, task_rate=0.0):
         self.grid_size = grid_size
         self.walls = set(obstacles)
         self.robot_starts = robot_starts
@@ -18,7 +19,9 @@ class Environment:
         self.task_locations = task_locations
         self.initial_moving = moving_obstacles or []
         self.task_schedule = new_tasks or {}
-        self.priorities = priorities or {}
+        self.initial_priorities = priorities or {}
+        self.task_rate = task_rate
+        self.rng = random.Random(seed)
         for task in list(task_locations) + list(self.task_schedule.values()):
             row, col = task
             if not (0 <= row < grid_size and 0 <= col < grid_size):
@@ -45,6 +48,7 @@ class Environment:
         self.completion_times = []
         self.busy_turns = 0
         self.moving_turns = 0
+        self.priorities = dict(self.initial_priorities)
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -71,6 +75,27 @@ class Environment:
         for pos in self.robots:
             if pos in self.obstacles:
                 self.obstacle_hits += 1
+
+    def free_cells(self):
+        taken = set(self.obstacles) | set(self.robots) | set(self.tasks)
+        cells = []
+        for row in range(self.grid_size):
+            for col in range(self.grid_size):
+                if (row, col) not in taken:
+                    cells.append((row, col))
+        return cells
+
+    def maybe_spawn_task(self):
+        if self.rng.random() >= self.task_rate:
+            return
+        cells = self.free_cells()
+        if not cells:
+            return
+        cell = self.rng.choice(cells)
+        priority = self.rng.choices([1, 2, 3], weights=[70, 20, 10])[0]
+        self.tasks.append(cell)
+        self.task_arrival[cell] = self.turn
+        self.priorities[cell] = priority
 
     def waiting_tasks(self):
         waiting = []
@@ -146,6 +171,8 @@ class Environment:
             new_task = self.task_schedule[self.turn]
             self.tasks.append(new_task)
             self.task_arrival[new_task] = self.turn
+            
+        self.maybe_spawn_task()
 
         desired = self.desired_positions(actions)
         desired = self.resolve_conflicts(desired)

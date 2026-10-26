@@ -241,6 +241,53 @@ def test_metrics_are_none_before_anything_happens():
     assert results["efficiency"] is None
     assert results["tasks_per_turn"] is None
 
+
+# ---------- randomness ----------
+
+def tasks_after(seed, rate=0.2, turns=30):
+    env = Environment(20, set(), [(0, 0)], [], seed=seed, task_rate=rate)
+    for _ in range(turns):
+        env.step([4])
+    return env.tasks
+
+
+def test_same_seed_gives_the_same_random_tasks():
+    assert tasks_after(5) == tasks_after(5), "Same seed must replay exactly"
+
+
+def test_different_seeds_give_different_random_tasks():
+    assert tasks_after(5) != tasks_after(6)
+
+
+def test_no_random_tasks_when_the_rate_is_zero():
+    assert tasks_after(5, rate=0.0) == []
+
+
+def test_random_tasks_never_land_on_walls_or_robots():
+    walls = {(r, c) for r in range(10) for c in range(20)}
+    env = Environment(20, walls, [(15, 5)], [], seed=2, task_rate=1.0)
+    for _ in range(50):
+        env.step([4])
+    assert len(env.tasks) > 0
+    for task in env.tasks:
+        assert task not in walls, "Task on a wall"
+        assert task != (15, 5), "Task on a robot"
+
+
+def test_random_obstacles_start_on_free_cells():
+    env = Environment(20, {(5, 8)}, [(0, 0), (19, 0)], [(12, 5)], seed=1, random_obstacles=3)
+    assert len(env.moving_obstacles) == 3
+    for cell, direction in env.moving_obstacles:
+        assert cell not in {(5, 8), (0, 0), (19, 0), (12, 5)}
+
+
+def test_reset_with_a_seed_replays_the_same_obstacles():
+    env = Environment(20, set(), [(0, 0)], [], seed=1, random_obstacles=3)
+    first = list(env.moving_obstacles)
+    env.reset()
+    assert env.moving_obstacles != first, "A plain reset gives a new layout"
+    env.reset(seed=1)
+    assert env.moving_obstacles == first, "Reset with the same seed replays it"
     
 if __name__ == "__main__":
     count = 0

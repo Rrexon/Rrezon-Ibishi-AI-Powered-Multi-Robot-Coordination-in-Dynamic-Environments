@@ -202,7 +202,46 @@ def test_urgent_task_arriving_mid_run_is_done_quickly():
     assert finished_on is not None and finished_on <= 6, "Urgent task done by turn 6"
     assert env.completed == 3, "The routine tasks still get done"
 
+# ---------- metrics ----------
 
+def test_completion_time_counts_from_the_turn_a_task_appears():
+    env = Environment(20, set(), [(0, 0)], [], None, {2: (0, 3)})
+    for turn in range(10):
+        assign_waiting_tasks(env)
+        env.step(plan_actions(env, env.assignments))
+    assert env.completion_times == [3], "Appeared on turn 2, finished on turn 5"
+
+
+def test_task_present_from_the_start_counts_from_turn_zero():
+    env = Environment(20, set(), [(0, 0)], [(0, 3)])
+    for turn in range(10):
+        assign_waiting_tasks(env)
+        env.step(plan_actions(env, env.assignments))
+    assert env.completion_times == [3]
+
+
+def test_efficiency_drops_when_a_robot_with_a_task_is_blocked():
+    env = Environment(20, set(), [(0, 0), (0, 1)], [])
+    env.assignments = [(0, 5), (0, 9)]
+    env.step([3, 4])
+    assert env.metrics()["efficiency"] == 0.0, "Neither robot made progress"
+
+
+def test_idle_robots_do_not_count_in_efficiency():
+    env = Environment(20, set(), [(0, 0), (5, 5)], [])
+    env.assignments = [(0, 5), None]
+    env.step([3, 4])
+    assert env.metrics()["efficiency"] == 1.0, "Only the working robot counts"
+
+
+def test_metrics_are_none_before_anything_happens():
+    env = Environment(20, set(), [(0, 0)], [])
+    results = env.metrics()
+    assert results["avg_completion_time"] is None
+    assert results["efficiency"] is None
+    assert results["tasks_per_turn"] is None
+
+    
 if __name__ == "__main__":
     count = 0
     for name, function in list(globals().items()):

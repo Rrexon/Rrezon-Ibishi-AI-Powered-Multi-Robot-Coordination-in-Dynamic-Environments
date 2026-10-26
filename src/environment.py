@@ -33,14 +33,18 @@ class Environment:
         self.completed = 0
         self.collisions = 0
         self.collisions_avoided = 0
-        self.obstacle_hits = 0
-        self.turn = 0
-        self.previous_conflicts = set()
         self.assignments = [None] * len(self.robots)
         self.moving_obstacles = list(self.initial_moving)
         self.obstacles = set(self.walls)
         for position, direction in self.moving_obstacles:
             self.obstacles.add(position)
+        self.obstacle_hits = 0
+        self.turn = 0
+        self.previous_conflicts = set()
+        self.task_arrival = {task: 0 for task in self.tasks}
+        self.completion_times = []
+        self.busy_turns = 0
+        self.moving_turns = 0
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -132,18 +136,50 @@ class Environment:
     def step(self, actions):
         if len(actions) != len(self.robots):
             raise ValueError("Need exactly one action per robot")
+
+        assigned_before = [task is not None for task in self.assignments]
+        positions_before = list(self.robots)
+
         self.update_obstacles()
         self.turn += 1
         if self.turn in self.task_schedule:
-            self.tasks.append(self.task_schedule[self.turn])
+            new_task = self.task_schedule[self.turn]
+            self.tasks.append(new_task)
+            self.task_arrival[new_task] = self.turn
+
         desired = self.desired_positions(actions)
         desired = self.resolve_conflicts(desired)
         self.robots = desired
 
-        for i, pos in enumerate(self.robots):
+        for a in range(len(self.robots)):
+            for b in range(a + 1, len(self.robots)):
+                if self.robots[a] == self.robots[b]:
+                    self.collisions += 1
+
+        for pos in self.robots:
             if pos in self.tasks:
                 self.tasks.remove(pos)
                 self.completed += 1
+                arrived = self.task_arrival.pop(pos, self.turn)
+                self.completion_times.append(self.turn - arrived)
                 for j in range(len(self.assignments)):
                     if self.assignments[j] == pos:
                         self.assignments[j] = None
+
+        for i in range(len(self.robots)):
+            if assigned_before[i]:
+                self.busy_turns += 1
+                if self.robots[i] != positions_before[i]:
+                    self.moving_turns += 1
+
+    def metrics(self):
+        times = self.completion_times
+        return {
+            "tasks_completed": self.completed,
+            "avg_completion_time": sum(times) / len(times) if times else None,
+            "slowest_task": max(times) if times else None,
+            "collisions_avoided": self.collisions_avoided,
+            "obstacle_hits": self.obstacle_hits,
+            "efficiency": self.moving_turns / self.busy_turns if self.busy_turns else None,
+            "tasks_per_turn": self.completed / self.turn if self.turn else None,
+        }

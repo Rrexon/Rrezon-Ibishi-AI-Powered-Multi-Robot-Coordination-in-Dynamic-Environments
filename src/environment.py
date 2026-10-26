@@ -10,7 +10,7 @@ ACTIONS = {
 }
 
 class Environment:
-    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None, priorities = None, seed= None, task_rate=0.0):
+    def __init__(self, grid_size, obstacles, robot_starts, task_locations, moving_obstacles=None, new_tasks=None, priorities = None, seed= None, task_rate=0.0, random_obstacles=0):
         self.grid_size = grid_size
         self.walls = set(obstacles)
         self.robot_starts = robot_starts
@@ -21,6 +21,7 @@ class Environment:
         self.task_schedule = new_tasks or {}
         self.initial_priorities = priorities or {}
         self.task_rate = task_rate
+        self.random_obstacles = random_obstacles
         self.rng = random.Random(seed)
         for task in list(task_locations) + list(self.task_schedule.values()):
             row, col = task
@@ -30,7 +31,9 @@ class Environment:
                 raise ValueError("A task is placed on a wall")
         self.reset()
 
-    def reset(self):
+    def reset(self, seed=None):
+        if seed is not None:
+            self.rng = random.Random(seed)
         self.robots = list(self.robot_starts)
         self.tasks = list(self.task_locations)
         self.completed = 0
@@ -41,14 +44,15 @@ class Environment:
         self.obstacles = set(self.walls)
         for position, direction in self.moving_obstacles:
             self.obstacles.add(position)
+        self.spawn_random_obstacles()
         self.obstacle_hits = 0
         self.turn = 0
         self.previous_conflicts = set()
+        self.priorities = dict(self.initial_priorities)
         self.task_arrival = {task: 0 for task in self.tasks}
         self.completion_times = []
         self.busy_turns = 0
         self.moving_turns = 0
-        self.priorities = dict(self.initial_priorities)
 
     def move_robot(self, i, action):
         d_row, d_col = ACTIONS[action]
@@ -84,6 +88,17 @@ class Environment:
                 if (row, col) not in taken:
                     cells.append((row, col))
         return cells
+
+    def spawn_random_obstacles(self):
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        for _ in range(self.random_obstacles):
+            cells = self.free_cells()
+            if not cells:
+                return
+            cell = self.rng.choice(cells)
+            direction = self.rng.choice(directions)
+            self.moving_obstacles.append((cell, direction))
+            self.obstacles.add(cell)
 
     def maybe_spawn_task(self):
         if self.rng.random() >= self.task_rate:
@@ -171,7 +186,7 @@ class Environment:
             new_task = self.task_schedule[self.turn]
             self.tasks.append(new_task)
             self.task_arrival[new_task] = self.turn
-            
+
         self.maybe_spawn_task()
 
         desired = self.desired_positions(actions)

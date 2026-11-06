@@ -1,0 +1,2 @@
+pygame>=2.0   # live viewer (src/main.py) only
+pytest>=7.0   # test runner (src/test_environment.py also runs without it)

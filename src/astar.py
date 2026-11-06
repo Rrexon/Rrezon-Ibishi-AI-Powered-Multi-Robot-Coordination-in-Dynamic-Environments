@@ -1,85 +1,72 @@
+"""A* pathfinding for the four-direction grid."""
+
 import heapq
 
+
 def heuristic(position, goal):
+    """Manhattan distance: the exact distance when there are no obstacles."""
+    return abs(position[0] - goal[0]) + abs(position[1] - goal[1])
 
-    row, col = position
-    goal_row, goal_col = goal
 
-    return abs(row- goal_row) + abs(col - goal_col)
-
-# Find neighbor available cells it can move to
 def get_neighbors(position, obstacles, grid_size):
+    """Return unblocked neighbors in up, down, left, right order."""
     row, col = position
+    candidates = ((row - 1, col), (row + 1, col),
+                  (row, col - 1), (row, col + 1))
+    return [cell for cell in candidates
+            if 0 <= cell[0] < grid_size and 0 <= cell[1] < grid_size
+            and cell not in obstacles]
 
-    possible_neighbors = [
-        (row - 1, col),  # Up
-        (row + 1, col),  # Down
-        (row, col - 1),  # Left
-        (row, col + 1)   # Right
-    ]
 
-    neighbors = []
-
-    for next_row, next_col in possible_neighbors:
-        # Skip positions outside the grid
-        if not (0 <= next_row < grid_size):
-            continue
-
-        if not (0 <= next_col < grid_size):
-            continue
-
-        # Skip blocked positions
-        if (next_row, next_col) in obstacles:
-            continue
-
-        neighbors.append((next_row, next_col))
-
-    return neighbors
-
-#traces back from the target to the start to reconstruct the path
 def reconstruct_path(came_from, current):
     path = [current]
-
     while current in came_from:
         current = came_from[current]
         path.append(current)
-
-    path.reverse()
-    return path
+    return list(reversed(path))
 
 
 def astar(start, goal, obstacles, grid_size):
-    # Cells waiting to be explored, kept so the lowest f_score is always first
-    open_heap = [(heuristic(start, goal), start)]
-
+    """Return the shortest path (including start and goal), or None."""
+    frontier = [(heuristic(start, goal), start)]
     came_from = {}
-    g_score = {start: 0}
+    distance = {start: 0}
+    visited = set()
 
-    # Cells already explored
-    closed = set()
-
-    while open_heap:
-        # Take the cell with the lowest f_score
-        _, current = heapq.heappop(open_heap)
-
-        # A cell can be pushed more than once; skip it if already explored
-        if current in closed:
+    while frontier:
+        _, current = heapq.heappop(frontier)
+        if current in visited:
             continue
-
         if current == goal:
             return reconstruct_path(came_from, current)
-
-        closed.add(current)
+        visited.add(current)
 
         for neighbor in get_neighbors(current, obstacles, grid_size):
-            tentative_g_score = g_score[current] + 1
-
-            if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = tentative_g_score
-                f_score = tentative_g_score + heuristic(neighbor, goal)
-                heapq.heappush(open_heap, (f_score, neighbor))
+            new_distance = distance[current] + 1
+            if neighbor in distance and new_distance >= distance[neighbor]:
+                continue
+            came_from[neighbor] = current
+            distance[neighbor] = new_distance
+            score = new_distance + heuristic(neighbor, goal)
+            heapq.heappush(frontier, (score, neighbor))
 
     return None
 
-    
+
+def distances_from(start, obstacles, grid_size):
+    """Return shortest distances from start to every reachable cell."""
+    frontier = [(0, start)]
+    distances = {start: 0}
+
+    while frontier:
+        distance, current = heapq.heappop(frontier)
+        if distance != distances[current]:
+            continue
+        for neighbor in get_neighbors(current, obstacles, grid_size):
+            new_distance = distance + 1
+            if new_distance >= distances.get(neighbor, float("inf")):
+                continue
+            distances[neighbor] = new_distance
+            heapq.heappush(frontier, (new_distance, neighbor))
+
+    return distances

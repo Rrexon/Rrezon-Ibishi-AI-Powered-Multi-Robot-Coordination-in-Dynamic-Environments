@@ -289,6 +289,179 @@ def test_reset_with_a_seed_replays_the_same_obstacles():
     env.reset(seed=1)
     assert env.moving_obstacles == first, "Reset with the same seed replays it"
     
+# ---------- invalid actions ----------
+
+def test_unknown_action_is_a_value_error_and_changes_nothing():
+    env = Environment(20, set(), [(5, 5)], [], [((8, 3), (0, 1))])
+    for bad in (7, -1, 5):
+        expect_error(lambda: env.step([bad]))
+    assert env.turn == 0, "A rejected step must not advance the turn"
+    assert env.robots == [(5, 5)]
+    assert env.moving_obstacles == [((8, 3), (0, 1))], "Obstacles must not move either"
+
+
+def test_unknown_action_is_rejected_for_every_robot():
+    env = Environment(20, set(), [(5, 5), (7, 7)], [])
+    expect_error(lambda: env.step([4, 9]))
+    expect_error(lambda: env.desired_position(0, 7))
+
+
+# ---------- more bad setups ----------
+
+def test_robot_start_must_be_on_the_grid_and_off_walls():
+    expect_error(lambda: Environment(20, set(), [(20, 0)], []))
+    expect_error(lambda: Environment(20, set(), [(0, -1)], []))
+    expect_error(lambda: Environment(20, {(3, 3)}, [(3, 3)], []))
+
+
+def test_environment_rejects_bad_sizes_rates_and_duplicate_initial_tasks():
+    expect_error(lambda: Environment(0, set(), [(0, 0)], []))
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], task_rate=1.1))
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [(2, 2), (2, 2)]))
+
+
+def test_moving_obstacle_start_must_be_valid():
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], [((25, 3), (0, 1))]))
+    expect_error(lambda: Environment(20, {(4, 4)}, [(0, 0)], [], [((4, 4), (0, 1))]))
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], [((0, 0), (0, 1))]))
+
+
+def test_moving_obstacles_need_unique_cells_and_cardinal_directions():
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [],
+                                    [((5, 5), (0, 1)), ((5, 5), (1, 0))]))
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], [((5, 5), (1, 1))]))
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], [((5, 5), (0, 0))]))
+
+
+def test_a_task_scheduled_for_turn_zero_is_rejected():
+    expect_error(lambda: Environment(20, set(), [(0, 0)], [], None, {0: (5, 5)}))
+    env = Environment(20, set(), [(0, 0)], [], None, {1: (5, 5)})
+    env.step([4])
+    assert env.tasks == [(5, 5)], "Turn 1 is the earliest valid turn"
+
+
+# ---------- priorities are cleaned up ----------
+
+def test_priority_is_forgotten_when_a_task_completes():
+    env = Environment(20, set(), [(0, 0)], [(0, 1)], None, None, {(0, 1): 3})
+    assert env.priority_of((0, 1)) == 3
+    env.step([3])
+    assert env.completed == 1
+    assert env.priority_of((0, 1)) == 1, "No leftover priority for that cell"
+
+
+def test_a_later_task_on_the_same_cell_does_not_inherit_old_priority():
+    env = Environment(20, set(), [(0, 0)], [(0, 1)], None, {3: (0, 1)}, {(0, 1): 3})
+    env.step([3])                      # robot completes the first task
+    env.step([2])
+    env.step([4])                      # turn 3: same cell is scheduled again
+    assert env.tasks == [(0, 1)]
+    assert env.priority_of((0, 1)) == 1
+
+
+def test_reset_brings_the_original_priorities_back():
+    env = Environment(20, set(), [(0, 0)], [(0, 1)], None, None, {(0, 1): 3})
+    env.step([3])
+    env.reset()
+    assert env.priority_of((0, 1)) == 3
+
+
+# ---------- what collisions_avoided counts ----------
+
+def test_three_robots_for_one_cell_count_two_robots_turned_back():
+    env = Environment(20, set(), [(2, 2), (2, 4), (1, 3)], [])
+    env.step([3, 2, 1])
+    assert env.robots == [(2, 3), (2, 4), (1, 3)], "Only robot 0 gets the cell"
+    assert env.collisions_avoided == 2, "One winner, two robots turned back"
+
+
+# ---------- priority decides real cell conflicts ----------
+
+def two_robots_for_one_cell(priority_a, priority_b):
+    tasks = [(8, 8), (9, 9)]
+    env = Environment(20, set(), [(2, 2), (2, 4)], tasks, None, None,
+                      {(8, 8): priority_a, (9, 9): priority_b})
+    env.assignments = [(8, 8), (9, 9)]
+    env.step([3, 2])                   # both want (2, 3)
+    return env
+
+
+def test_higher_priority_task_wins_a_cell_even_with_a_higher_robot_number():
+    env = two_robots_for_one_cell(1, 3)
+    assert env.robots == [(2, 2), (2, 3)], "Robot 1 carries the urgent task"
+
+
+def test_equal_priority_cell_conflict_goes_to_the_lower_robot_number():
+    env = two_robots_for_one_cell(2, 2)
+    assert env.robots == [(2, 3), (2, 4)]
+
+
+def test_working_robot_beats_an_idle_robot_for_a_cell():
+    env = Environment(20, set(), [(2, 2), (2, 4)], [(9, 9)])
+    env.assignments = [None, (9, 9)]
+    env.step([3, 2])
+    assert env.robots == [(2, 2), (2, 3)], "The idle robot gives way"
+
+
+def test_standing_robot_keeps_its_cell_whatever_the_priorities():
+    env = Environment(20, set(), [(2, 2), (2, 3)], [(8, 8), (9, 9)], None, None,
+                      {(8, 8): 1, (9, 9): 5})
+    env.assignments = [(8, 8), (9, 9)]
+    env.step([3, 4])
+    assert env.robots == [(2, 2), (2, 3)], "Nobody can push a standing robot"
+
+
+# ---------- unreachable tasks ----------
+
+def test_unreachable_task_is_never_assigned():
+    env = Environment(20, {(0, 1), (1, 0)}, [(0, 0)], [(5, 5)])
+    assert run_auction(env, (5, 5)) is None
+    assign_waiting_tasks(env)
+    assert env.assignments == [None]
+    assert env.waiting_tasks() == [(5, 5)]
+
+
+# ---------- one task per cell ----------
+
+def test_random_things_never_land_on_a_cell_reserved_for_a_scheduled_task():
+    reserved = {(r, c) for r in range(20) for c in range(20)} - {(0, 0), (1, 1)}
+    schedule = {50 + n: cell for n, cell in enumerate(sorted(reserved))}
+    env = Environment(20, set(), [(0, 0)], [], None, schedule, seed=3,
+                      task_rate=1.0, random_obstacles=1)
+    for cell, direction in env.moving_obstacles:
+        assert cell not in reserved, "Obstacle spawned on a reserved cell"
+    env.step([4])
+    for task in env.tasks:
+        assert task not in reserved, "Random task spawned on a reserved cell"
+
+
+def test_a_scheduled_task_on_an_open_task_is_merged_not_duplicated():
+    env = Environment(20, set(), [(0, 0)], [(5, 5)], None, {2: (5, 5)})
+    env.step([4])
+    env.step([4])
+    assert env.tasks == [(5, 5)], "Still one task in that cell"
+    assert env.task_arrival[(5, 5)] == 0, "It keeps its original arrival time"
+
+
+# ---------- extra metrics ----------
+
+def test_open_tasks_show_up_in_the_metrics():
+    env = Environment(20, set(), [(0, 0)], [(0, 1), (9, 9)])
+    env.step([3])                      # completes (0, 1)
+    env.step([4])
+    results = env.metrics()
+    assert results["tasks_completed"] == 1
+    assert results["tasks_unfinished"] == 1
+    assert results["completion_rate"] == 0.5
+    assert results["oldest_open_task"] == 2
+
+
+def test_completion_rate_is_none_when_there_were_no_tasks():
+    env = Environment(20, set(), [(0, 0)], [])
+    assert env.metrics()["completion_rate"] is None
+    assert env.metrics()["oldest_open_task"] is None
+
+
 if __name__ == "__main__":
     count = 0
     for name, function in list(globals().items()):

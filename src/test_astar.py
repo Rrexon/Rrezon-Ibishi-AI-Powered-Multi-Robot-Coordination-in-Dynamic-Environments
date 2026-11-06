@@ -1,4 +1,4 @@
-from astar import astar
+from astar import astar, distances_from
 
 START = (5, 3)
 GOAL = (12, 15)
@@ -54,3 +54,11 @@ def test_wall_with_no_opening_is_unreachable():
     blocked_path = astar(START, GOAL, blocked_obstacles, 20)
 
     assert blocked_path is None, "A* should not find a path"
+
+
+def test_distance_map_returns_shortest_reachable_distances():
+    obstacles = {(8, col) for col in range(20) if col != 10}
+    distances = distances_from(START, obstacles, 20)
+    path = astar(START, GOAL, obstacles, 20)
+    assert distances[GOAL] == len(path) - 1
+    assert GOAL not in distances_from(START, {(8, col) for col in range(20)}, 20)
